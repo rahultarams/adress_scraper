@@ -1,32 +1,45 @@
 import re
-import sys
+import argparse
 
-class AddressExtractor:
+class RedfinAddressExtractor:
     def __init__(self, url):
         self.url = url
-        self.pattern = r'https://www.redfin.com/([^/]+)/([^/]+)/(.+)/home/(\d+)'
 
-    def extract_and_format_address(self):
-        match = re.search(self.pattern, self.url)
+    def extract_address(self):
+        # Regular expression pattern to capture city, state, address, unit/apartment, and home ID from the URL
+        pattern = r'https://www.redfin.com/([^/]+)/([^/]+)/(.+?)/([^/]+)/(\d+)'
+
+        match = re.search(pattern, self.url)
+
         if match:
             state = match.group(1)
-            city = match.group(2).replace('-', ' ')
-            raw_address = match.group(3)
-            home_id = match.group(4)
+            city = match.group(2)
+            address = match.group(3).replace('-', ' ')  # Extracting address and removing dashes
+            unit_apartment = match.group(4)
+            home_id = match.group(5)
 
-            street_address = ' '.join(raw_address.split('-')[:-1])
-            zip_code = raw_address.split('-')[-1]
-            formatted_address = f"{street_address}, {city}, {state} {zip_code}"
+            # Combine the parts into the final formatted address
+            formatted_address = f"{address} {unit_apartment}, {city}, {state}"
 
-            return {"address": formatted_address, "home_id": home_id}
+            return formatted_address, home_id
         else:
-            return "No match found"
+            return None, None
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        url = sys.argv[1]
-        address_extractor = AddressExtractor(url)
-        result = address_extractor.extract_and_format_address()
-        print(result)
+    # Set up command-line argument parser
+    parser = argparse.ArgumentParser(description="Extract address and home ID from a Redfin URL")
+    parser.add_argument("url", help="Redfin URL to extract address from")
+
+    # Parse command-line arguments
+    args = parser.parse_args()
+
+    # Create an instance of RedfinAddressExtractor with the provided URL
+    extractor = RedfinAddressExtractor(args.url)
+    address, home_id = extractor.extract_address()
+
+    # Print the extracted address and home ID
+    if address and home_id:
+        print("Address:", address)
+        print("Home ID:", home_id)
     else:
-        print("Usage: python script_name.py <URL>")
+        print("No match found")
